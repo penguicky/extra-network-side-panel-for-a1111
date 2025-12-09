@@ -42,23 +42,6 @@
 	min-height: unset;
 }
 
-@media (min-width: 3146px) {
-	#txt2img_toprow,
-	#img2img_toprow,
-	#tab_txt2img #txt2img_toprow ~ .form + div,
-	#tab_img2img #img2img_extra_networks + div {
-		max-width: 1800px;
-	}
-}
-
-@media (max-width: 3145px) {
-	#tab_txt2img #txt2img_toprow ~ .form,
-	#tab_img2img #img2img_extra_networks {
-		max-width: 50vw;
-		min-width: 50vw;
-	}
-}
-
 @media (max-width: 970px) {
 	#tab_txt2img #txt2img_toprow ~ .form,
 	#tab_img2img #img2img_extra_networks {
@@ -113,7 +96,7 @@
 
 #tab_txt2img > div,
 #tab_img2img > div {
-	grid-template-columns: min-content min-content auto; /* 0.8fr auto 1fr; */
+	grid-template-columns: min-content min-content auto;
 }
 
 #txt2img_extra_tabs,
@@ -122,6 +105,7 @@
 	grid-column-end: 4;
 }
 
+/* Side panel mode styles */
 [restore-separate-extra-network] [sd-enr-id="txt2img_generation_tab"],
 [restore-separate-extra-network] [sd-enr-id="img2img_generation_tab"] {
 	grid-column-start: 1;
@@ -136,7 +120,40 @@
 	grid-column-end: 4;
 }
 
-[restore-separate-extra-network] .extra-page-prompts.extra-page-prompts-active{
+[restore-separate-extra-network] .extra-page-prompts.extra-page-prompts-active {
     margin-bottom: 0em;
 	display: none;
+}
+
+/* Basic layout fixes for side panel mode */
+body[restore-separate-extra-network] .gradio-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Fix for the grid layout */
+#tab_txt2img > div.svelte-1uw5tnk,
+#tab_img2img > div.svelte-1uw5tnk {
+    display: grid;
+    grid-template-columns: min-content min-content auto;
+}
+
+/* Ensure proper sizing when panel is closed */
+body:not([restore-separate-extra-network]) #tab_txt2img > div,
+body:not([restore-separate-extra-network]) #tab_img2img > div {
+    display: block;
+}
+
+/* Simple responsive adjustments */
+@media (min-width: 2560px) {
+    [restore-separate-extra-network] [sd-enr-id="txt2img_generation_tab"],
+    [restore-separate-extra-network] [sd-enr-id="img2img_generation_tab"] {
+        width: 40vw;
+        max-width: 1400px;
+    }
+    
+    [restore-separate-extra-network] #txt2img_extra_tabs,
+    [restore-separate-extra-network] #img2img_extra_tabs {
+        min-width: 45vw;
+    }
 }
