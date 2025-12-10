@@ -34,34 +34,38 @@ onUiLoaded(function() {
       { // Text2Image elements
         tools: document.getElementById('txt2img_tools'),
         last_button:  document.getElementById('txt2img_style_apply'),
-        generation_tab: document.getElementById('txt2img_settings').parentNode.parentNode,
+        generation_tab: document.getElementById('txt2img_settings') ? document.getElementById('txt2img_settings').parentNode.parentNode : null,
         generation_tab_att_id: 'txt2img_generation_tab',
         new_id: 'txt2img_toggle_extra'
       },
       { // Image2Image elements
         tools: document.getElementById('img2img_tools'),
         last_button:  document.getElementById('deepbooru'),
-        generation_tab: document.getElementById('img2img_settings').parentNode.parentNode,
+        generation_tab: document.getElementById('img2img_settings') ? document.getElementById('img2img_settings').parentNode.parentNode : null,
         generation_tab_att_id: 'img2img_generation_tab',
         new_id: 'img2img_toggle_extra'
       }
     ];
-    if(typeof settingsObjects[0].last_button != "undefined" && typeof settingsObjects[1].last_button != "undefined") {
+    if(settingsObjects[0].tools && settingsObjects[1].tools && typeof settingsObjects[0].last_button != "undefined" && typeof settingsObjects[1].last_button != "undefined") {
       // Loop through each object in the array we created earlier
       settingsObjects.forEach(obj => {
         // Do init code
-        let newButton = obj.last_button.cloneNode(false); // Duplicate the last_button
-        newButton.id = obj.new_id; // Change the id to new_id
-        newButton.title = "Toggle Extra Networks."; // Change the title
-        newButton.innerHTML = rsen_extra_networks_symbol; // Change the innerHTML
+        if (obj.last_button) {
+            let newButton = obj.last_button.cloneNode(false); // Duplicate the last_button
+            newButton.id = obj.new_id; // Change the id to new_id
+            newButton.title = "Toggle Extra Networks."; // Change the title
+            newButton.innerHTML = rsen_extra_networks_symbol; // Change the innerHTML
 
-        obj.last_button.parentNode.insertBefore(newButton, obj.last_button.nextSibling); // Insert the new button after the last_button
+            obj.last_button.parentNode.insertBefore(newButton, obj.last_button.nextSibling); // Insert the new button after the last_button
 
-        newButton.onclick = () => rsen_toggleExtraNetworks(); // Add new click event
+            newButton.onclick = () => rsen_toggleExtraNetworks(); // Add new click event
+        }
 
         // Set an id for the inner generation tab div and parent div
-        obj.generation_tab.setAttribute("sd-enr-id", obj.generation_tab_att_id);
-        obj.generation_tab.parentNode.setAttribute("sd-enr-id", obj.generation_tab_att_id + "_parent");
+        if (obj.generation_tab) {
+            obj.generation_tab.setAttribute("sd-enr-id", obj.generation_tab_att_id);
+            obj.generation_tab.parentNode.setAttribute("sd-enr-id", obj.generation_tab_att_id + "_parent");
+        }
       });
       
       // Now that we are done, set init to true so that it doesn't run more than once
@@ -100,12 +104,39 @@ function forceFullWidth() {
 //4. Toggle Extra Networks Function (Part 1 - Setup)
 /////////////////////////////
 function rsen_toggleExtraNetworks() {
+  
+  // Helper to ensure elements are found and attributes are restored if lost (e.g. due to re-renders)
+  const getTabElements = (tabName) => {
+      let genTab = document.querySelector(`[sd-enr-id="${tabName}_generation_tab"]`);
+      let genTabParent = document.querySelector(`[sd-enr-id="${tabName}_generation_tab_parent"]`);
+      
+      if (!genTab) {
+          const settings = document.getElementById(`${tabName}_settings`);
+          if (settings) {
+              genTab = settings.parentNode.parentNode;
+              // Restore attribute if we recovered the element
+              if (genTab) genTab.setAttribute("sd-enr-id", `${tabName}_generation_tab`);
+          }
+      }
+      
+      if (!genTabParent && genTab) {
+          genTabParent = genTab.parentNode;
+          // Restore attribute if we recovered the element
+          if (genTabParent) genTabParent.setAttribute("sd-enr-id", `${tabName}_generation_tab_parent`);
+      }
+      
+      return { genTab, genTabParent };
+  };
+
+  const txt2imgEls = getTabElements('txt2img');
+  const img2imgEls = getTabElements('img2img');
+
   // Get all the elements you are interested in and put them into an object to make the later code a bit cleaner
   let settingsObjects = [
     { // Text2Image elements
       all_tabs: document.getElementById('txt2img_extra_tabs'),
-      generation_tab_parent: document.querySelector('[sd-enr-id="txt2img_generation_tab_parent"]'),
-      generation_tab: document.querySelector('[sd-enr-id="txt2img_generation_tab"]'),
+      generation_tab_parent: txt2imgEls.genTabParent,
+      generation_tab: txt2imgEls.genTab,
       generation_tab_resize: document.getElementById('txt2img_generation_tab_resize'),
       generation_tab_resize_id: 'txt2img_generation_tab_resize',
       tab_nav: document.querySelector('#txt2img_extra_tabs > .tab-nav'),
@@ -115,8 +146,8 @@ function rsen_toggleExtraNetworks() {
     },
     { // Image2Image elements
       all_tabs: document.getElementById('img2img_extra_tabs'),
-      generation_tab_parent: document.querySelector('[sd-enr-id="img2img_generation_tab_parent"]'),
-      generation_tab: document.querySelector('[sd-enr-id="img2img_generation_tab"]'),
+      generation_tab_parent: img2imgEls.genTabParent,
+      generation_tab: img2imgEls.genTab,
       generation_tab_resize: document.getElementById('img2img_generation_tab_resize'),
       generation_tab_resize_id: 'img2img_generation_tab_resize',
       tab_nav: document.querySelector('#img2img_extra_tabs > .tab-nav'),
@@ -194,10 +225,12 @@ function rsen_toggleExtraNetworks() {
 /////////////////////////////
 //6. Toggle Extra Networks Function (Part 3 - Tab Handling)
 /////////////////////////////
-if (typeof settingsObjects[0].generation_tab != "undefined" && typeof settingsObjects[1].generation_tab != "undefined") {
+if (settingsObjects[0].generation_tab && settingsObjects[1].generation_tab) {
   // Loop through each object in the array we created earlier
   settingsObjects.forEach(obj => {
     // Find the tab buttons with the text for the default tab and "Generation" tab
+    if (!obj.tab_nav) return;
+    
     let tabButtons = Array.from(obj.tab_nav.querySelectorAll('button'));
     let defaultTabButton = tabButtons.find(button => button.innerHTML.trim() === getText_ExtraNetworksSidePanel(opts.extra_networks_side_panel_default_tab));
     let generationButton = tabButtons.find(button => button.innerHTML.trim() === getText_ExtraNetworksSidePanel("Generation"));
@@ -221,97 +254,98 @@ if (generationButton) {
       lastTabButton.click();
     }
 
-    obj.all_tabs.parentNode.setAttribute("restore-separate-extra-network","");
-    
-    // Make sure the toprow stays at the top if it exists
-    if (obj.toprow && obj.toprow.parentNode === obj.all_tabs.parentNode) {
-      // Ensure toprow is the first child
-      if (obj.all_tabs.parentNode.firstChild !== obj.toprow) {
-        obj.all_tabs.parentNode.insertBefore(obj.toprow, obj.all_tabs.parentNode.firstChild);
-      }
-      // Style the toprow to span full width
-      obj.toprow.style.width = '100%';
-      obj.toprow.style.flex = '0 0 auto';
-      obj.toprow.style.position = 'relative';
-      obj.toprow.style.zIndex = '20';
-      obj.toprow.style.marginBottom = '10px';
-    }
-    
-    // Set up the parent container to use flexbox for proper layout
-    obj.all_tabs.parentNode.style.display = 'flex';
-    obj.all_tabs.parentNode.style.flexDirection = 'row';
-    obj.all_tabs.parentNode.style.flexWrap = 'wrap';
-    obj.all_tabs.parentNode.style.alignItems = 'stretch';
-    obj.all_tabs.parentNode.style.width = '100%';
-    obj.all_tabs.parentNode.style.overflow = 'hidden';
-
-    // 1. First, ensure the generation tab is on the left with proper class
-    if (!obj.generation_tab.className.includes('svelte-vt1mxs gap')) {
-      obj.generation_tab.className += " svelte-vt1mxs gap";
-    }
-    obj.generation_tab.style.flex = '0 0 auto';
-    obj.generation_tab.style.width = '40vw';
-    obj.generation_tab.style.minWidth = '200px';
-    obj.generation_tab.style.maxWidth = '60vw';
-    obj.generation_tab.style.position = 'relative';
-    obj.generation_tab.style.overflowX = 'auto';
-    obj.generation_tab.style.overflowY = 'auto';
-    
-    // Move the generation_tab after the toprow (if it exists) or to the beginning
-    if (obj.toprow) {
-      obj.all_tabs.parentNode.insertBefore(obj.generation_tab, obj.toprow.nextSibling);
-    } else {
-      obj.all_tabs.parentNode.insertBefore(obj.generation_tab, obj.all_tabs.parentNode.firstChild);
-    }
-
-    // 2. Create the resize div for the middle
-    let resizeDiv = document.createElement('div');
-    resizeDiv.setAttribute('id', obj.generation_tab_resize_id);
-    resizeDiv.style.cursor = 'col-resize';
-    resizeDiv.style.width = '16px';
-    resizeDiv.style.minHeight = '100%';
-    resizeDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
-    resizeDiv.style.margin = '0 8px';
-    resizeDiv.style.flex = '0 0 16px';
-    resizeDiv.style.zIndex = '10';
-    
-    // Insert the resize div after the generation tab
-    obj.all_tabs.parentNode.insertBefore(resizeDiv, obj.generation_tab.nextSibling);
-
-    // 3. Ensure the extra tabs are on the right
-    obj.all_tabs.style.flex = '1';
-    obj.all_tabs.style.minWidth = '300px';
-    obj.all_tabs.style.position = 'relative';
-    obj.all_tabs.style.display = 'block';
-    obj.all_tabs.style.visibility = 'visible';
-    obj.all_tabs.style.opacity = '1';
-    
-    // Make sure the extra tabs have the correct classes
-    if (!obj.all_tabs.className.includes('extra-networks')) {
-      obj.all_tabs.className = 'tabs gradio-tabs extra-networks svelte-1uw5tnk';
-    }
-
-    // on mouse down (drag start)
-    resizeDiv.onmousedown = function dragMouseDown(e) {
-      // get position of mouse
-      let dragX = e.clientX;
-      // register a mouse move listener if mouse is down
-      document.onmousemove = function onMouseMove(e) {
-        // e.clientX will be the position of the mouse as it has moved a bit now
-        let newWidth = obj.generation_tab.offsetWidth + e.clientX - dragX;
-        let maxWidth = obj.all_tabs.parentNode.offsetWidth - 400;
+    if (obj.all_tabs && obj.all_tabs.parentNode) {
+        obj.all_tabs.parentNode.setAttribute("restore-separate-extra-network","");
         
-        if (newWidth > 200 && newWidth < maxWidth) {
-          // offsetWidth is the width of the block-1
-          obj.generation_tab.style.width = newWidth  + "px";
-          // update variable - till this pos, mouse movement has been handled
-          dragX = e.clientX;
+        // Make sure the toprow stays at the top if it exists
+        if (obj.toprow && obj.toprow.parentNode === obj.all_tabs.parentNode) {
+          // Ensure toprow is the first child
+          if (obj.all_tabs.parentNode.firstChild !== obj.toprow) {
+            obj.all_tabs.parentNode.insertBefore(obj.toprow, obj.all_tabs.parentNode.firstChild);
+          }
+          // Style the toprow to span full width
+          obj.toprow.style.width = '100%';
+          obj.toprow.style.flex = '0 0 auto';
+          obj.toprow.style.position = 'relative';
+          obj.toprow.style.zIndex = '20';
+          obj.toprow.style.marginBottom = '10px';
         }
-      }
-      // remove mouse-move listener on mouse-up (drag is finished now)
-      document.onmouseup = () => document.onmousemove = document.onmouseup = null;
-    }
+        
+        // Set up the parent container to use flexbox for proper layout
+        obj.all_tabs.parentNode.style.display = 'flex';
+        obj.all_tabs.parentNode.style.flexDirection = 'row';
+        obj.all_tabs.parentNode.style.flexWrap = 'wrap';
+        obj.all_tabs.parentNode.style.alignItems = 'stretch';
+        obj.all_tabs.parentNode.style.width = '100%';
+        obj.all_tabs.parentNode.style.overflow = 'hidden';
 
+        // 1. First, ensure the generation tab is on the left with proper class
+        if (obj.generation_tab.className && !obj.generation_tab.className.includes('svelte-vt1mxs gap')) {
+          obj.generation_tab.className += " svelte-vt1mxs gap";
+        }
+        obj.generation_tab.style.flex = '0 0 auto';
+        obj.generation_tab.style.width = '40vw';
+        obj.generation_tab.style.minWidth = '200px';
+        obj.generation_tab.style.maxWidth = '60vw';
+        obj.generation_tab.style.position = 'relative';
+        obj.generation_tab.style.overflowX = 'auto';
+        obj.generation_tab.style.overflowY = 'auto';
+        
+        // Move the generation_tab after the toprow (if it exists) or to the beginning
+        if (obj.toprow) {
+          obj.all_tabs.parentNode.insertBefore(obj.generation_tab, obj.toprow.nextSibling);
+        } else {
+          obj.all_tabs.parentNode.insertBefore(obj.generation_tab, obj.all_tabs.parentNode.firstChild);
+        }
+
+        // 2. Create the resize div for the middle
+        let resizeDiv = document.createElement('div');
+        resizeDiv.setAttribute('id', obj.generation_tab_resize_id);
+        resizeDiv.style.cursor = 'col-resize';
+        resizeDiv.style.width = '16px';
+        resizeDiv.style.minHeight = '100%';
+        resizeDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+        resizeDiv.style.margin = '0 8px';
+        resizeDiv.style.flex = '0 0 16px';
+        resizeDiv.style.zIndex = '10';
+        
+        // Insert the resize div after the generation tab
+        obj.all_tabs.parentNode.insertBefore(resizeDiv, obj.generation_tab.nextSibling);
+
+        // 3. Ensure the extra tabs are on the right
+        obj.all_tabs.style.flex = '1';
+        obj.all_tabs.style.minWidth = '300px';
+        obj.all_tabs.style.position = 'relative';
+        obj.all_tabs.style.display = 'block';
+        obj.all_tabs.style.visibility = 'visible';
+        obj.all_tabs.style.opacity = '1';
+        
+        // Make sure the extra tabs have the correct classes
+        if (obj.all_tabs.className && !obj.all_tabs.className.includes('extra-networks')) {
+          obj.all_tabs.className = 'tabs gradio-tabs extra-networks svelte-1uw5tnk';
+        }
+
+        // on mouse down (drag start)
+        resizeDiv.onmousedown = function dragMouseDown(e) {
+          // get position of mouse
+          let dragX = e.clientX;
+          // register a mouse move listener if mouse is down
+          document.onmousemove = function onMouseMove(e) {
+            // e.clientX will be the position of the mouse as it has moved a bit now
+            let newWidth = obj.generation_tab.offsetWidth + e.clientX - dragX;
+            let maxWidth = obj.all_tabs.parentNode.offsetWidth - 400;
+            
+            if (newWidth > 200 && newWidth < maxWidth) {
+              // offsetWidth is the width of the block-1
+              obj.generation_tab.style.width = newWidth  + "px";
+              // update variable - till this pos, mouse movement has been handled
+              dragX = e.clientX;
+            }
+          }
+          // remove mouse-move listener on mouse-up (drag is finished now)
+          document.onmouseup = () => document.onmousemove = document.onmouseup = null;
+        }
+    }
 
 
 /////////////////////////////
@@ -333,27 +367,31 @@ if (generationButton) {
     // Show the "Generation" button
     obj.tab_nav.removeAttribute("important-hide");
 
-    obj.all_tabs.parentNode.removeAttribute("restore-separate-extra-network","");
-    
-    // Reset the toprow if it exists
-    if (obj.toprow) {
-      obj.toprow.style.width = '';
-      obj.toprow.style.flex = '';
-      obj.toprow.style.position = '';
-      obj.toprow.style.zIndex = '';
-      obj.toprow.style.marginBottom = '';
+    if (obj.all_tabs && obj.all_tabs.parentNode) {
+        obj.all_tabs.parentNode.removeAttribute("restore-separate-extra-network","");
+        
+        // Reset the toprow if it exists
+        if (obj.toprow) {
+          obj.toprow.style.width = '';
+          obj.toprow.style.flex = '';
+          obj.toprow.style.position = '';
+          obj.toprow.style.zIndex = '';
+          obj.toprow.style.marginBottom = '';
+        }
+        
+        // Reset the parent container layout
+        obj.all_tabs.parentNode.style.display = '';
+        obj.all_tabs.parentNode.style.flexDirection = '';
+        obj.all_tabs.parentNode.style.flexWrap = '';
+        obj.all_tabs.parentNode.style.alignItems = '';
+        obj.all_tabs.parentNode.style.width = '';
+        obj.all_tabs.parentNode.style.overflow = '';
     }
-    
-    // Reset the parent container layout
-    obj.all_tabs.parentNode.style.display = '';
-    obj.all_tabs.parentNode.style.flexDirection = '';
-    obj.all_tabs.parentNode.style.flexWrap = '';
-    obj.all_tabs.parentNode.style.alignItems = '';
-    obj.all_tabs.parentNode.style.width = '';
-    obj.all_tabs.parentNode.style.overflow = '';
 
     // Reset the generation tab
-    obj.generation_tab.className = obj.generation_tab.className.replace(" svelte-vt1mxs gap", "");
+    if (obj.generation_tab.className) {
+        obj.generation_tab.className = obj.generation_tab.className.replace(" svelte-vt1mxs gap", "");
+    }
     obj.generation_tab.style.flex = '';
     obj.generation_tab.style.width = '';
     obj.generation_tab.style.minWidth = '';
@@ -371,7 +409,9 @@ if (generationButton) {
     obj.all_tabs.style.opacity = '';
 
     // Move the generation_tab node back to its parent
-    obj.generation_tab_parent.appendChild(obj.generation_tab);
+    if (obj.generation_tab_parent) {
+        obj.generation_tab_parent.appendChild(obj.generation_tab);
+    }
 
     if (obj.generation_tab_resize && obj.generation_tab_resize.parentNode) {
       obj.generation_tab_resize.remove();
@@ -423,11 +463,16 @@ onUiUpdate(function(args) {
 
 // for compact ui layout we need to hijack the method that moves the prompt box to the extra network tabs
 
-// save the original method
-const extraNetworksMovePromptToTabOriginal = extraNetworksMovePromptToTab;
+onUiLoaded(function() {
+  // We wrap this in onUiLoaded to ensure the original function is available
+  if (typeof extraNetworksMovePromptToTab !== 'undefined') {
+    // save the original method
+    const extraNetworksMovePromptToTabOriginal = extraNetworksMovePromptToTab;
 
-// override the original to not operate when the side panel is open
-extraNetworksMovePromptToTab = (...args) => { 
-  if(rsen_toggleState) return;
-  return extraNetworksMovePromptToTabOriginal(...args);
-};
+    // override the original to not operate when the side panel is open
+    extraNetworksMovePromptToTab = (...args) => { 
+      if(rsen_toggleState) return;
+      return extraNetworksMovePromptToTabOriginal(...args);
+    };
+  }
+});
