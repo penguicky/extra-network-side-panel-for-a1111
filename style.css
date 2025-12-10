@@ -144,6 +144,127 @@ body:not([restore-separate-extra-network]) #tab_img2img > div {
     display: block;
 }
 
+/* Card Resizing & Slider Styles */
+.rsen-card-slider-group {
+    display: none;
+    align-items: center;
+    margin-left: auto;
+    padding: 0 10px;
+    background: var(--background-fill-secondary);
+    border-radius: var(--container-radius);
+    height: 32px;
+    margin-top: auto;
+    margin-bottom: auto;
+    flex-shrink: 0;
+}
+
+[restore-separate-extra-network] .rsen-card-slider-group {
+    display: flex;
+}
+
+.rsen-card-slider {
+    width: 80px;
+    height: 4px;
+    margin: 0 5px;
+    vertical-align: middle;
+}
+
+[restore-separate-extra-network] .extra-network-pane .card, 
+[restore-separate-extra-network] .standalone-card-preview.card {
+    width: var(--rsen-card-width, 16rem) !important;
+    height: var(--rsen-card-height, 24rem) !important;
+    font-size: var(--rsen-card-fontsize, 1rem) !important;
+}
+
+/* Height Fix: Allow the pane to expand to fill the container, but constrained by flex parent */
+[restore-separate-extra-network] .extra-network-pane {
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+/* Force internal scrolling for cards */
+/* MODIFIED: Explicitly target the tab item content to force scroll */
+[restore-separate-extra-network] #txt2img_extra_tabs > .tabitem,
+[restore-separate-extra-network] #img2img_extra_tabs > .tabitem {
+    height: 100% !important;
+    overflow-y: auto !important;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure the cards container fills the space and scrolls */
+[restore-separate-extra-network] .extra-network-cards,
+[restore-separate-extra-network] .extra-network-thumbs {
+    flex: 1;
+    overflow-y: auto !important;
+    height: auto !important; 
+    min-height: 0;
+}
+
+/* Fix: The main tabs container (e.g. #txt2img_extra_tabs) height is forced to 0 by JS 
+   to stop it from expanding the parent. We need to ensure the inner content fills the min-height: 100% */
+
+[restore-separate-extra-network] #txt2img_extra_tabs > div:not(.tab-nav),
+[restore-separate-extra-network] #img2img_extra_tabs > div:not(.tab-nav) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1; 
+    min-height: 0;
+    overflow: hidden; 
+}
+
+/* --- OVERLAP FIXES START --- */
+
+/* Ensure the tab-nav (Toolbar) stays on top and has a background */
+[restore-separate-extra-network] .extra-networks > .tab-nav {
+    z-index: 999;
+    position: relative;
+    background: var(--body-background-fill);
+    flex-wrap: wrap; 
+    height: auto !important; 
+    min-height: 2.7rem;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--block-border-color);
+    flex-shrink: 0;
+    align-items: center;
+}
+
+/* Make search bar responsive in side panel mode to prevent overlap/overflow */
+[restore-separate-extra-network] .extra-networks .tab-nav .search {
+    max-width: 100% !important;
+    width: auto !important;
+    flex: 1 1 120px;
+    margin-right: 4px;
+}
+
+/* Adjust sort dropdown width */
+[restore-separate-extra-network] .extra-networks .tab-nav .sort {
+    width: auto !important;
+    max-width: 100px;
+    flex: 0 1 auto;
+}
+
+/* Ensure controls container doesn't overflow */
+[restore-separate-extra-network] .extra-networks-controls-div {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+    align-items: center;
+}
+
+/* Ensure Slider group fits */
+[restore-separate-extra-network] .rsen-card-slider-group {
+    margin-left: 0;
+}
+
+/* --- OVERLAP FIXES END --- */
+
 /* Simple responsive adjustments */
 @media (min-width: 2560px) {
     [restore-separate-extra-network] [sd-enr-id="txt2img_generation_tab"],
@@ -154,6 +275,6 @@ body:not([restore-separate-extra-network]) #tab_img2img > div {
     
     [restore-separate-extra-network] #txt2img_extra_tabs,
     [restore-separate-extra-network] #img2img_extra_tabs {
-        min-width: 45vw;
+        min-width: 20vw; 
     }
 }

@@ -231,6 +231,49 @@ if (settingsObjects[0].generation_tab && settingsObjects[1].generation_tab) {
     // Find the tab buttons with the text for the default tab and "Generation" tab
     if (!obj.tab_nav) return;
     
+    // -- Feature: Card Size Slider --
+    if (!obj.tab_nav.querySelector('.rsen-card-slider')) {
+        let sliderDiv = document.createElement('div');
+        sliderDiv.className = 'rsen-card-slider-group';
+        
+        let label = document.createElement('span');
+        label.innerText = 'Card Size: ';
+        label.style.fontSize = '0.85em';
+        
+        let slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '0.1'; 
+        slider.max = '1.5';
+        slider.step = '0.1';
+        slider.value = localStorage.getItem('rsen-card-scale') || '1.0';
+        slider.className = 'rsen-card-slider';
+        
+        const updateCardSize = (scale) => {
+            scale = parseFloat(scale);
+            document.documentElement.style.setProperty('--rsen-card-width', (16 * scale) + 'rem');
+            document.documentElement.style.setProperty('--rsen-card-height', (24 * scale) + 'rem');
+            
+            // Adjust font size slightly so text doesn't overflow immediately
+            // Constrain between 0.7rem and 1.2rem
+            let newFont = Math.max(0.7, Math.min(1.2, scale)); 
+            document.documentElement.style.setProperty('--rsen-card-fontsize', newFont + 'rem');
+            
+            localStorage.setItem('rsen-card-scale', scale);
+        };
+        
+        slider.oninput = (e) => updateCardSize(e.target.value);
+        
+        // Initialize with saved or default value
+        updateCardSize(slider.value);
+        
+        sliderDiv.appendChild(label);
+        sliderDiv.appendChild(slider);
+        
+        // Append to nav
+        obj.tab_nav.appendChild(sliderDiv);
+    }
+    // -- End Feature --
+
     let tabButtons = Array.from(obj.tab_nav.querySelectorAll('button'));
     let defaultTabButton = tabButtons.find(button => button.innerHTML.trim() === getText_ExtraNetworksSidePanel(opts.extra_networks_side_panel_default_tab));
     let generationButton = tabButtons.find(button => button.innerHTML.trim() === getText_ExtraNetworksSidePanel("Generation"));
@@ -272,12 +315,14 @@ if (generationButton) {
         }
         
         // Set up the parent container to use flexbox for proper layout
+        // IMPORTANT: Parent must be relative for absolute child (sidebar) to work
         obj.all_tabs.parentNode.style.display = 'flex';
         obj.all_tabs.parentNode.style.flexDirection = 'row';
         obj.all_tabs.parentNode.style.flexWrap = 'wrap';
         obj.all_tabs.parentNode.style.alignItems = 'stretch';
         obj.all_tabs.parentNode.style.width = '100%';
         obj.all_tabs.parentNode.style.overflow = 'hidden';
+        obj.all_tabs.parentNode.style.position = 'relative'; 
 
         // 1. First, ensure the generation tab is on the left with proper class
         if (obj.generation_tab.className && !obj.generation_tab.className.includes('svelte-vt1mxs gap')) {
@@ -286,7 +331,7 @@ if (generationButton) {
         obj.generation_tab.style.flex = '0 0 auto';
         obj.generation_tab.style.width = '40vw';
         obj.generation_tab.style.minWidth = '200px';
-        obj.generation_tab.style.maxWidth = '60vw';
+        obj.generation_tab.style.maxWidth = '85vw'; 
         obj.generation_tab.style.position = 'relative';
         obj.generation_tab.style.overflowX = 'auto';
         obj.generation_tab.style.overflowY = 'auto';
@@ -313,12 +358,22 @@ if (generationButton) {
         obj.all_tabs.parentNode.insertBefore(resizeDiv, obj.generation_tab.nextSibling);
 
         // 3. Ensure the extra tabs are on the right
-        obj.all_tabs.style.flex = '1';
-        obj.all_tabs.style.minWidth = '300px';
-        obj.all_tabs.style.position = 'relative';
-        obj.all_tabs.style.display = 'block';
+        // MODIFIED: Use Absolute Positioning to strictly match parent height (defined by Gen Tab)
+        obj.all_tabs.style.position = 'absolute'; 
+        obj.all_tabs.style.top = '0';
+        obj.all_tabs.style.bottom = '0';
+        obj.all_tabs.style.right = '0';
+        obj.all_tabs.style.height = '100%'; // Ensure height match
+        
+        // Calculate initial width relative to 40vw Gen Tab
+        // We use CSS calc to ensure it fills the remaining space
+        obj.all_tabs.style.width = 'calc(100% - 40vw - 32px)'; 
+        
+        obj.all_tabs.style.display = 'flex'; 
+        obj.all_tabs.style.flexDirection = 'column'; 
         obj.all_tabs.style.visibility = 'visible';
         obj.all_tabs.style.opacity = '1';
+        obj.all_tabs.style.zIndex = '10';
         
         // Make sure the extra tabs have the correct classes
         if (obj.all_tabs.className && !obj.all_tabs.className.includes('extra-networks')) {
@@ -333,11 +388,17 @@ if (generationButton) {
           document.onmousemove = function onMouseMove(e) {
             // e.clientX will be the position of the mouse as it has moved a bit now
             let newWidth = obj.generation_tab.offsetWidth + e.clientX - dragX;
-            let maxWidth = obj.all_tabs.parentNode.offsetWidth - 400;
+            let maxWidth = obj.all_tabs.parentNode.offsetWidth - 150; 
+            let parentWidth = obj.all_tabs.parentNode.offsetWidth;
             
             if (newWidth > 200 && newWidth < maxWidth) {
               // offsetWidth is the width of the block-1
               obj.generation_tab.style.width = newWidth  + "px";
+              
+              // MODIFIED: Sync absolute sidebar width to fill remaining space
+              // Parent Width - GenTab Width - Resize Handle Width (~32px total margin/padding)
+              obj.all_tabs.style.width = (parentWidth - newWidth - 32) + "px";
+              
               // update variable - till this pos, mouse movement has been handled
               dragX = e.clientX;
             }
@@ -386,6 +447,7 @@ if (generationButton) {
         obj.all_tabs.parentNode.style.alignItems = '';
         obj.all_tabs.parentNode.style.width = '';
         obj.all_tabs.parentNode.style.overflow = '';
+        obj.all_tabs.parentNode.style.position = '';
     }
 
     // Reset the generation tab
@@ -403,10 +465,17 @@ if (generationButton) {
     // Reset the extra tabs
     obj.all_tabs.style.flex = '';
     obj.all_tabs.style.minWidth = '';
+    obj.all_tabs.style.width = ''; 
+    obj.all_tabs.style.height = ''; 
     obj.all_tabs.style.position = '';
+    obj.all_tabs.style.top = '';
+    obj.all_tabs.style.bottom = '';
+    obj.all_tabs.style.right = '';
     obj.all_tabs.style.display = '';
+    obj.all_tabs.style.flexDirection = ''; 
     obj.all_tabs.style.visibility = '';
     obj.all_tabs.style.opacity = '';
+    obj.all_tabs.style.zIndex = '';
 
     // Move the generation_tab node back to its parent
     if (obj.generation_tab_parent) {
