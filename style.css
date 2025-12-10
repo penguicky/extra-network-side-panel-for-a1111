@@ -73,25 +73,51 @@
 	display: none !important;
 }
 
+/* MODIFIED: Updated to match forge-neo's resize handle styling */
 #txt2img_generation_tab_resize,
 #img2img_generation_tab_resize {
 	cursor: col-resize;
 	user-select: none;
-	overflow: hidden;
-	padding-top: 10px;
-	padding-right: 7px;
-	padding-left: 7px;
-	margin-right: -7px;
-	margin-left: -7px;
+	overflow: hidden; /* Prevent visual elements from extending beyond boundaries */
+	width: 8px;
+	min-width: 8px;
+	max-width: 8px;
+	margin: 0 4px;
+	padding: 0;
+	position: relative;
+	flex-shrink: 0;
+	z-index: 100; /* Ensure resize bar stays above side panel */
+	transition: background-color 0.2s ease;
 }
 
 #txt2img_generation_tab_resize:before,
 #img2img_generation_tab_resize:before {
 	content: "";
 	display: block;
-	z-index: -1;
-	height: 100%;
-	border-left: 1px dashed var(--border-color-primary);
+	position: absolute;
+	left: 3px; /* Position 3px from left (centered in 8px width: 3px + 2px line = 5px, leaving 3px on right) */
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background-color: var(--border-color-primary, rgba(128, 128, 128, 0.3));
+	border-radius: 1px;
+	transition: background-color 0.2s ease, width 0.2s ease;
+}
+
+#txt2img_generation_tab_resize:hover,
+#img2img_generation_tab_resize:hover {
+	background-color: var(--background-fill-secondary, rgba(128, 128, 128, 0.1));
+}
+
+#txt2img_generation_tab_resize:hover:before,
+#img2img_generation_tab_resize:hover:before {
+	width: 3px;
+	background-color: var(--primary-500, var(--border-color-accent, rgba(99, 102, 241, 0.8)));
+}
+
+#txt2img_generation_tab_resize:active:before,
+#img2img_generation_tab_resize:active:before {
+	background-color: var(--primary-600, var(--border-color-accent, rgba(79, 70, 229, 1)));
 }
 
 #tab_txt2img > div,
@@ -118,6 +144,7 @@
 [restore-separate-extra-network] #img2img_extra_tabs {
 	grid-column-start: 3;
 	grid-column-end: 4;
+	padding-left: 8px; /* Add left padding to prevent content from touching the resize bar */
 }
 
 [restore-separate-extra-network] .extra-page-prompts.extra-page-prompts-active {
@@ -169,11 +196,11 @@ body:not([restore-separate-extra-network]) #tab_img2img > div {
     vertical-align: middle;
 }
 
+/* MODIFIED: Removed font-size override to respect Forge settings */
 [restore-separate-extra-network] .extra-network-pane .card, 
 [restore-separate-extra-network] .standalone-card-preview.card {
     width: var(--rsen-card-width, 16rem) !important;
     height: var(--rsen-card-height, 24rem) !important;
-    font-size: var(--rsen-card-fontsize, 1rem) !important;
 }
 
 /* Height Fix: Allow the pane to expand to fill the container, but constrained by flex parent */
@@ -186,7 +213,6 @@ body:not([restore-separate-extra-network]) #tab_img2img > div {
 }
 
 /* Force internal scrolling for cards */
-/* MODIFIED: Explicitly target the tab item content to force scroll */
 [restore-separate-extra-network] #txt2img_extra_tabs > .tabitem,
 [restore-separate-extra-network] #img2img_extra_tabs > .tabitem {
     height: 100% !important;

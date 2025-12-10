@@ -253,11 +253,7 @@ if (settingsObjects[0].generation_tab && settingsObjects[1].generation_tab) {
             document.documentElement.style.setProperty('--rsen-card-width', (16 * scale) + 'rem');
             document.documentElement.style.setProperty('--rsen-card-height', (24 * scale) + 'rem');
             
-            // Adjust font size slightly so text doesn't overflow immediately
-            // Constrain between 0.7rem and 1.2rem
-            let newFont = Math.max(0.7, Math.min(1.2, scale)); 
-            document.documentElement.style.setProperty('--rsen-card-fontsize', newFont + 'rem');
-            
+            // MODIFIED: Removed font-size update to respect global settings
             localStorage.setItem('rsen-card-scale', scale);
         };
         
@@ -344,36 +340,35 @@ if (generationButton) {
         }
 
         // 2. Create the resize div for the middle
+        // MODIFIED: Updated to match forge-neo's resize handle styling (styles defined in CSS)
         let resizeDiv = document.createElement('div');
         resizeDiv.setAttribute('id', obj.generation_tab_resize_id);
-        resizeDiv.style.cursor = 'col-resize';
-        resizeDiv.style.width = '16px';
+        // Only set essential inline styles; visual styling is handled by CSS
         resizeDiv.style.minHeight = '100%';
-        resizeDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
-        resizeDiv.style.margin = '0 8px';
-        resizeDiv.style.flex = '0 0 16px';
-        resizeDiv.style.zIndex = '10';
-        
+        resizeDiv.style.zIndex = '100'; // Higher z-index to stay above side panel
+
         // Insert the resize div after the generation tab
         obj.all_tabs.parentNode.insertBefore(resizeDiv, obj.generation_tab.nextSibling);
 
         // 3. Ensure the extra tabs are on the right
         // MODIFIED: Use Absolute Positioning to strictly match parent height (defined by Gen Tab)
-        obj.all_tabs.style.position = 'absolute'; 
+        obj.all_tabs.style.position = 'absolute';
         obj.all_tabs.style.top = '0';
         obj.all_tabs.style.bottom = '0';
+        // Position from left edge: generation tab width (40vw) + resize bar total space (24px)
+        // 24px = 4px left margin + 8px bar + 4px right margin + 8px side panel padding
+        obj.all_tabs.style.left = 'calc(40vw + 24px)';
         obj.all_tabs.style.right = '0';
         obj.all_tabs.style.height = '100%'; // Ensure height match
-        
-        // Calculate initial width relative to 40vw Gen Tab
-        // We use CSS calc to ensure it fills the remaining space
-        obj.all_tabs.style.width = 'calc(100% - 40vw - 32px)'; 
-        
-        obj.all_tabs.style.display = 'flex'; 
-        obj.all_tabs.style.flexDirection = 'column'; 
+
+        // Width will be auto-calculated by left + right positioning
+        obj.all_tabs.style.width = 'auto';
+
+        obj.all_tabs.style.display = 'flex';
+        obj.all_tabs.style.flexDirection = 'column';
         obj.all_tabs.style.visibility = 'visible';
         obj.all_tabs.style.opacity = '1';
-        obj.all_tabs.style.zIndex = '10';
+        obj.all_tabs.style.zIndex = '10'; // Lower than resize bar (z-index: 100)
         
         // Make sure the extra tabs have the correct classes
         if (obj.all_tabs.className && !obj.all_tabs.className.includes('extra-networks')) {
@@ -388,17 +383,18 @@ if (generationButton) {
           document.onmousemove = function onMouseMove(e) {
             // e.clientX will be the position of the mouse as it has moved a bit now
             let newWidth = obj.generation_tab.offsetWidth + e.clientX - dragX;
-            let maxWidth = obj.all_tabs.parentNode.offsetWidth - 150; 
-            let parentWidth = obj.all_tabs.parentNode.offsetWidth;
-            
+            let maxWidth = obj.all_tabs.parentNode.offsetWidth - 150;
+
             if (newWidth > 200 && newWidth < maxWidth) {
-              // offsetWidth is the width of the block-1
+              // Update generation tab width
               obj.generation_tab.style.width = newWidth  + "px";
-              
-              // MODIFIED: Sync absolute sidebar width to fill remaining space
-              // Parent Width - GenTab Width - Resize Handle Width (~32px total margin/padding)
-              obj.all_tabs.style.width = (parentWidth - newWidth - 32) + "px";
-              
+
+              // MODIFIED: Update sidebar left position to account for new gen tab width + resize bar spacing
+              // 24px = 4px left margin + 8px bar + 4px right margin + 8px side panel padding
+              obj.all_tabs.style.left = (newWidth + 24) + "px";
+              // Width is auto-calculated by left + right positioning
+              obj.all_tabs.style.width = 'auto';
+
               // update variable - till this pos, mouse movement has been handled
               dragX = e.clientX;
             }
