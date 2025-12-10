@@ -22,6 +22,48 @@ var rsen_lastGenerationTabGridTemplateImg2img = {
 };
 
 /////////////////////////////
+// 1.1 Settings Helper Functions
+/////////////////////////////
+
+/**
+ * Get the initial panel width from settings
+ * @returns {number} Width percentage (default: 60)
+ */
+function rsen_getInitialPanelWidth() {
+  return opts.extra_networks_side_panel_initial_width || 60;
+}
+
+/**
+ * Get the card size setting and return corresponding CSS class
+ * @returns {string} CSS class for card size
+ */
+function rsen_getCardSizeClass() {
+  const cardSize = opts.extra_networks_side_panel_card_size || 'Medium';
+  const sizeMap = {
+    'Small': 'rsen-card-small',
+    'Medium': 'rsen-card-medium',
+    'Large': 'rsen-card-large',
+    'Extra Large': 'rsen-card-xlarge'
+  };
+  return sizeMap[cardSize] || 'rsen-card-medium';
+}
+
+/**
+ * Apply card size setting to the side panel
+ * @param {HTMLElement} allTabs - The side panel element
+ */
+function rsen_applyCardSize(allTabs) {
+  if (!allTabs) return;
+
+  // Remove all card size classes
+  allTabs.classList.remove('rsen-card-small', 'rsen-card-medium', 'rsen-card-large', 'rsen-card-xlarge');
+
+  // Add the current card size class
+  const cardSizeClass = rsen_getCardSizeClass();
+  allTabs.classList.add(cardSizeClass);
+}
+
+/////////////////////////////
 //2. UI Initialization Function
 /////////////////////////////
 
@@ -321,13 +363,17 @@ if (generationButton) {
         obj.all_tabs.parentNode.style.position = 'relative'; 
 
         // 1. First, ensure the generation tab is on the left with proper class
+        // Get initial width from settings (default 60% for side panel, so generation tab gets 100% - 60% = 40%)
+        const sidePanelWidth = rsen_getInitialPanelWidth();
+        const generationTabWidth = 100 - sidePanelWidth;
+
         if (obj.generation_tab.className && !obj.generation_tab.className.includes('svelte-vt1mxs gap')) {
           obj.generation_tab.className += " svelte-vt1mxs gap";
         }
         obj.generation_tab.style.flex = '0 0 auto';
-        obj.generation_tab.style.width = '40vw';
+        obj.generation_tab.style.width = generationTabWidth + 'vw';
         obj.generation_tab.style.minWidth = '200px';
-        obj.generation_tab.style.maxWidth = '85vw'; 
+        obj.generation_tab.style.maxWidth = '85vw';
         obj.generation_tab.style.position = 'relative';
         obj.generation_tab.style.overflowX = 'auto';
         obj.generation_tab.style.overflowY = 'auto';
@@ -355,14 +401,17 @@ if (generationButton) {
         obj.all_tabs.style.position = 'absolute';
         obj.all_tabs.style.top = '0';
         obj.all_tabs.style.bottom = '0';
-        // Position from left edge: generation tab width (40vw) + resize bar total space (24px)
+        // Position from left edge: generation tab width + resize bar total space (24px)
         // 24px = 4px left margin + 8px bar + 4px right margin + 8px side panel padding
-        obj.all_tabs.style.left = 'calc(40vw + 24px)';
+        obj.all_tabs.style.left = 'calc(' + generationTabWidth + 'vw + 24px)';
         obj.all_tabs.style.right = '0';
         obj.all_tabs.style.height = '100%'; // Ensure height match
 
         // Width will be auto-calculated by left + right positioning
         obj.all_tabs.style.width = 'auto';
+
+        // Apply card size setting
+        rsen_applyCardSize(obj.all_tabs);
 
         obj.all_tabs.style.display = 'flex';
         obj.all_tabs.style.flexDirection = 'column';
@@ -461,17 +510,21 @@ if (generationButton) {
     // Reset the extra tabs
     obj.all_tabs.style.flex = '';
     obj.all_tabs.style.minWidth = '';
-    obj.all_tabs.style.width = ''; 
-    obj.all_tabs.style.height = ''; 
+    obj.all_tabs.style.width = '';
+    obj.all_tabs.style.height = '';
     obj.all_tabs.style.position = '';
     obj.all_tabs.style.top = '';
     obj.all_tabs.style.bottom = '';
+    obj.all_tabs.style.left = ''; // Reset left positioning
     obj.all_tabs.style.right = '';
     obj.all_tabs.style.display = '';
-    obj.all_tabs.style.flexDirection = ''; 
+    obj.all_tabs.style.flexDirection = '';
     obj.all_tabs.style.visibility = '';
     obj.all_tabs.style.opacity = '';
     obj.all_tabs.style.zIndex = '';
+
+    // Remove card size classes
+    obj.all_tabs.classList.remove('rsen-card-small', 'rsen-card-medium', 'rsen-card-large', 'rsen-card-xlarge');
 
     // Move the generation_tab node back to its parent
     if (obj.generation_tab_parent) {
