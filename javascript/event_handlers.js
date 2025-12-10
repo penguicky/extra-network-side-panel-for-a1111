@@ -21,6 +21,16 @@ var rsen_lastGenerationTabGridTemplateImg2img = {
   saved: "1fr 16px 1fr"
 };
 
+// Auto-hide state tracking
+var rsen_autoHideState = {
+  enabled: false,
+  isRevealed: false,
+  hideTimeout: null,
+  hoverTrigger: null,
+  isLocked: false,
+  lockButton: null
+};
+
 /////////////////////////////
 // 1.1 Settings Helper Functions
 /////////////////////////////
@@ -61,6 +71,251 @@ function rsen_applyCardSize(allTabs) {
   // Add the current card size class
   const cardSizeClass = rsen_getCardSizeClass();
   allTabs.classList.add(cardSizeClass);
+}
+
+/**
+ * Get the auto-hide setting
+ * @returns {boolean} Whether auto-hide is enabled
+ */
+function rsen_getAutoHideSetting() {
+  return opts.extra_networks_side_panel_auto_hide || false;
+}
+
+/**
+ * Create hover trigger zone for auto-hide
+ * @returns {HTMLElement} The hover trigger element
+ */
+function rsen_createHoverTrigger() {
+  const trigger = document.createElement('div');
+  trigger.className = 'rsen-auto-hide-trigger';
+  trigger.setAttribute('id', 'rsen_auto_hide_trigger');
+  return trigger;
+}
+
+/**
+ * Create lock/pin button for auto-hide
+ * @param {HTMLElement} allTabs - The side panel element
+ * @param {HTMLElement} generationTab - The generation tab element
+ * @returns {HTMLElement} The lock button element
+ */
+function rsen_createLockButton(allTabs, generationTab) {
+  const lockBtn = document.createElement('div');
+  lockBtn.className = 'rsen-auto-hide-lock-btn';
+  lockBtn.setAttribute('data-tooltip', 'Click to pin panel');
+  lockBtn.setAttribute('title', 'Pin panel (keep visible)');
+
+  // Click handler to toggle lock state
+  lockBtn.onclick = (e) => {
+    e.stopPropagation();
+    rsen_toggleLock(lockBtn, allTabs, generationTab);
+  };
+
+  return lockBtn;
+}
+
+/**
+ * Toggle lock state for auto-hide
+ * @param {HTMLElement} lockBtn - The lock button element
+ * @param {HTMLElement} allTabs - The side panel element
+ * @param {HTMLElement} generationTab - The generation tab element
+ */
+function rsen_toggleLock(lockBtn, allTabs, generationTab) {
+  rsen_autoHideState.isLocked = !rsen_autoHideState.isLocked;
+
+  if (rsen_autoHideState.isLocked) {
+    // Locked state - keep panel visible
+    lockBtn.classList.add('locked');
+    lockBtn.classList.remove('revealed');
+    lockBtn.setAttribute('data-tooltip', 'Click to unpin');
+    lockBtn.setAttribute('title', 'Unpin panel (enable auto-hide)');
+
+    // Clear any pending hide timeout
+    if (rsen_autoHideState.hideTimeout) {
+      clearTimeout(rsen_autoHideState.hideTimeout);
+      rsen_autoHideState.hideTimeout = null;
+    }
+
+    // Ensure panel is revealed
+    rsen_revealPanel(allTabs, generationTab);
+  } else {
+    // Unlocked state - enable auto-hide
+    lockBtn.classList.remove('locked');
+    lockBtn.setAttribute('data-tooltip', 'Click to pin panel');
+    lockBtn.setAttribute('title', 'Pin panel (keep visible)');
+
+    // Check if panel is currently revealed and update icon accordingly
+    if (!allTabs.classList.contains('rsen-auto-hidden')) {
+      lockBtn.classList.add('revealed');
+    } else {
+      lockBtn.classList.remove('revealed');
+    }
+  }
+}
+
+/**
+ * Reveal the auto-hidden side panel
+ * @param {HTMLElement} allTabs - The side panel element
+ * @param {HTMLElement} generationTab - The generation tab element
+ */
+function rsen_revealPanel(allTabs, generationTab) {
+  if (!allTabs || !generationTab || !rsen_autoHideState.enabled) return;
+
+  // Clear any pending hide timeout
+  if (rsen_autoHideState.hideTimeout) {
+    clearTimeout(rsen_autoHideState.hideTimeout);
+    rsen_autoHideState.hideTimeout = null;
+  }
+
+  // Mark as revealed
+  rsen_autoHideState.isRevealed = true;
+
+  // Remove auto-hide class to reveal panel
+  allTabs.classList.remove('rsen-auto-hidden');
+  generationTab.classList.remove('rsen-generation-expanded');
+
+  // Update lock button icon to show right arrow (revealed state)
+  if (rsen_autoHideState.lockButton && !rsen_autoHideState.isLocked) {
+    rsen_autoHideState.lockButton.classList.add('revealed');
+  }
+}
+
+/**
+ * Hide the side panel (auto-hide mode)
+ * @param {HTMLElement} allTabs - The side panel element
+ * @param {HTMLElement} generationTab - The generation tab element
+ * @param {number} delay - Delay in milliseconds before hiding
+ */
+function rsen_hidePanel(allTabs, generationTab, delay = 400) {
+  if (!allTabs || !generationTab || !rsen_autoHideState.enabled) return;
+
+  // Don't hide if panel is locked
+  if (rsen_autoHideState.isLocked) return;
+
+  // Clear any existing timeout
+  if (rsen_autoHideState.hideTimeout) {
+    clearTimeout(rsen_autoHideState.hideTimeout);
+  }
+
+  // Set timeout to hide panel
+  rsen_autoHideState.hideTimeout = setTimeout(() => {
+    rsen_autoHideState.isRevealed = false;
+    allTabs.classList.add('rsen-auto-hidden');
+    generationTab.classList.add('rsen-generation-expanded');
+
+    // Update lock button icon to show left arrow (collapsed state)
+    if (rsen_autoHideState.lockButton && !rsen_autoHideState.isLocked) {
+      rsen_autoHideState.lockButton.classList.remove('revealed');
+    }
+  }, delay);
+}
+
+/**
+ * Setup auto-hide functionality
+ * @param {Object} obj - Object containing all_tabs and generation_tab elements
+ */
+function rsen_setupAutoHide(obj) {
+  if (!obj.all_tabs || !obj.generation_tab) return;
+
+  const autoHideEnabled = rsen_getAutoHideSetting();
+  rsen_autoHideState.enabled = autoHideEnabled;
+
+  if (!autoHideEnabled) {
+    // Clean up if auto-hide is disabled
+    rsen_cleanupAutoHide(obj);
+    return;
+  }
+
+  // Create and add hover trigger if it doesn't exist
+  if (!rsen_autoHideState.hoverTrigger) {
+    rsen_autoHideState.hoverTrigger = rsen_createHoverTrigger();
+    document.body.appendChild(rsen_autoHideState.hoverTrigger);
+  }
+
+  // Create and add lock button if it doesn't exist
+  if (!rsen_autoHideState.lockButton) {
+    rsen_autoHideState.lockButton = rsen_createLockButton(obj.all_tabs, obj.generation_tab);
+    obj.all_tabs.appendChild(rsen_autoHideState.lockButton);
+  }
+
+  // Initially hide the panel (unless locked from previous state)
+  if (!rsen_autoHideState.isLocked) {
+    obj.all_tabs.classList.add('rsen-auto-hidden');
+    obj.generation_tab.classList.add('rsen-generation-expanded');
+    // Set initial icon to left arrow (collapsed state)
+    if (rsen_autoHideState.lockButton) {
+      rsen_autoHideState.lockButton.classList.remove('revealed');
+    }
+  } else {
+    // Panel is locked, so it's revealed - set icon to pin
+    if (rsen_autoHideState.lockButton) {
+      rsen_autoHideState.lockButton.classList.remove('revealed');
+    }
+  }
+
+  // Hide resize bar in auto-hide mode
+  const resizeBar = document.getElementById(obj.generation_tab_resize_id);
+  if (resizeBar) {
+    resizeBar.style.display = 'none';
+  }
+
+  // Setup hover trigger event
+  rsen_autoHideState.hoverTrigger.onmouseenter = () => {
+    rsen_revealPanel(obj.all_tabs, obj.generation_tab);
+  };
+
+  // Setup side panel hover events
+  obj.all_tabs.onmouseenter = () => {
+    rsen_revealPanel(obj.all_tabs, obj.generation_tab);
+  };
+
+  obj.all_tabs.onmouseleave = () => {
+    rsen_hidePanel(obj.all_tabs, obj.generation_tab);
+  };
+}
+
+/**
+ * Cleanup auto-hide functionality
+ * @param {Object} obj - Object containing all_tabs and generation_tab elements
+ */
+function rsen_cleanupAutoHide(obj) {
+  // Remove hover trigger
+  if (rsen_autoHideState.hoverTrigger && rsen_autoHideState.hoverTrigger.parentNode) {
+    rsen_autoHideState.hoverTrigger.remove();
+    rsen_autoHideState.hoverTrigger = null;
+  }
+
+  // Remove lock button
+  if (rsen_autoHideState.lockButton && rsen_autoHideState.lockButton.parentNode) {
+    rsen_autoHideState.lockButton.remove();
+    rsen_autoHideState.lockButton = null;
+  }
+
+  // Clear timeout
+  if (rsen_autoHideState.hideTimeout) {
+    clearTimeout(rsen_autoHideState.hideTimeout);
+    rsen_autoHideState.hideTimeout = null;
+  }
+
+  // Remove classes
+  if (obj.all_tabs) {
+    obj.all_tabs.classList.remove('rsen-auto-hidden');
+    obj.all_tabs.onmouseenter = null;
+    obj.all_tabs.onmouseleave = null;
+  }
+
+  if (obj.generation_tab) {
+    obj.generation_tab.classList.remove('rsen-generation-expanded');
+  }
+
+  // Show resize bar
+  const resizeBar = document.getElementById(obj.generation_tab_resize_id);
+  if (resizeBar) {
+    resizeBar.style.display = '';
+  }
+
+  // Reset state (but keep isLocked for session persistence)
+  rsen_autoHideState.enabled = false;
+  rsen_autoHideState.isRevealed = false;
 }
 
 /////////////////////////////
@@ -469,9 +724,15 @@ if (generationButton) {
       obj.generation_tab.firstElementChild.style.gridTemplateColumns = obj.lastGridTemplate.saved;
       obj.lastGridTemplate.saved = tempVal;
     }
+
+    // Setup auto-hide functionality if enabled
+    rsen_setupAutoHide(obj);
   } else {
     // Show the "Generation" button
     obj.tab_nav.removeAttribute("important-hide");
+
+    // Cleanup auto-hide when closing panel
+    rsen_cleanupAutoHide(obj);
 
     if (obj.all_tabs && obj.all_tabs.parentNode) {
         obj.all_tabs.parentNode.removeAttribute("restore-separate-extra-network","");

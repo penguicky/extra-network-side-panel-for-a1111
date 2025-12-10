@@ -376,3 +376,149 @@ body:not([restore-separate-extra-network]) #tab_img2img > div {
 }
 
 /* --- CARD SIZE SETTINGS END --- */
+
+/* --- AUTO-HIDE FUNCTIONALITY --- */
+
+/* Hover trigger zone at the right edge */
+.rsen-auto-hide-trigger {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 100vh;
+    z-index: 150;
+    cursor: pointer;
+    background: transparent;
+    opacity: 1;
+    transition: background 0.2s ease;
+}
+
+.rsen-auto-hide-trigger:hover {
+    background: linear-gradient(to left, rgba(var(--primary-500-rgb, 59, 130, 246), 0.3), transparent);
+}
+
+/* Auto-hidden state for side panel */
+[restore-separate-extra-network] #txt2img_extra_tabs.rsen-auto-hidden,
+[restore-separate-extra-network] #img2img_extra_tabs.rsen-auto-hidden {
+    transform: translateX(calc(100% - 10px));
+    transition: transform 0.3s ease-in-out;
+    box-shadow: none;
+}
+
+/* Revealed state (remove transform) */
+[restore-separate-extra-network] #txt2img_extra_tabs.rsen-auto-hidden:not(.rsen-auto-hidden),
+[restore-separate-extra-network] #img2img_extra_tabs.rsen-auto-hidden:not(.rsen-auto-hidden) {
+    transform: translateX(0);
+}
+
+/* When panel is revealed, ensure smooth transition */
+[restore-separate-extra-network] #txt2img_extra_tabs,
+[restore-separate-extra-network] #img2img_extra_tabs {
+    transition: transform 0.3s ease-in-out;
+}
+
+/* Generation tab expanded state (when panel is auto-hidden) */
+[restore-separate-extra-network] [sd-enr-id="txt2img_generation_tab"].rsen-generation-expanded,
+[restore-separate-extra-network] [sd-enr-id="img2img_generation_tab"].rsen-generation-expanded {
+    width: calc(100vw - 10px) !important; /* Full viewport width minus 10px visible panel edge */
+    max-width: calc(100vw - 10px) !important; /* Override any max-width constraints */
+    transition: width 0.3s ease-in-out;
+}
+
+/* Remove any borders that might cause overlap */
+[restore-separate-extra-network] #txt2img_extra_tabs.rsen-auto-hidden,
+[restore-separate-extra-network] #img2img_extra_tabs.rsen-auto-hidden {
+    border-left: none;
+}
+
+/* Lock/Pin button for auto-hide - positioned on the visible edge */
+.rsen-auto-hide-lock-btn {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 48px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    z-index: 200;
+    transition: all 0.2s ease;
+    user-select: none;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: 0;
+}
+
+/* Show icon on the visible edge - left arrow when collapsed (default) */
+.rsen-auto-hide-lock-btn::before {
+    content: "◀";
+    font-size: 12px;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    color: var(--neutral-500, #888);
+}
+
+.rsen-auto-hide-lock-btn:hover::before {
+    opacity: 0.9;
+    font-size: 14px;
+    color: var(--primary-500, #3b82f6);
+}
+
+/* Revealed state (panel visible but unpinned) - right arrow */
+.rsen-auto-hide-lock-btn.revealed::before {
+    content: "▶";
+    font-size: 12px;
+    opacity: 0.5;
+    color: var(--neutral-500, #888);
+}
+
+.rsen-auto-hide-lock-btn.revealed:hover::before {
+    opacity: 0.9;
+    font-size: 14px;
+    color: var(--primary-500, #3b82f6);
+}
+
+/* Locked state styling - pin icon when locked */
+.rsen-auto-hide-lock-btn.locked::before {
+    content: "📍";
+    filter: grayscale(0%);
+    opacity: 1;
+    font-size: 14px;
+    color: inherit;
+}
+
+.rsen-auto-hide-lock-btn.locked:hover::before {
+    font-size: 16px;
+}
+
+/* Tooltip for lock button */
+.rsen-auto-hide-lock-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 201;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+}
+
+.rsen-auto-hide-lock-btn:hover::after {
+    opacity: 1;
+}
+
+/* --- AUTO-HIDE FUNCTIONALITY END --- */
