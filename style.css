@@ -393,9 +393,9 @@ body:not([restore-separate-extra-network]) #tab_img2img > div {
     transition: background 0.2s ease;
 }
 
-.rsen-auto-hide-trigger:hover {
+/* .rsen-auto-hide-trigger:hover {
     background: linear-gradient(to left, rgba(var(--primary-500-rgb, 59, 130, 246), 0.3), transparent);
-}
+} */
 
 /* Auto-hidden state for side panel */
 [restore-separate-extra-network] #txt2img_extra_tabs.rsen-auto-hidden,
