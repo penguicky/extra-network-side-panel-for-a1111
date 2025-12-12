@@ -400,8 +400,57 @@ function forceFullWidth() {
 /////////////////////////////
 //4. Toggle Extra Networks Function (Part 1 - Setup)
 /////////////////////////////
+
+// Gallery state preservation - save before toggle, restore after
+var rsen_savedGalleryState = {
+  txt2img: { selectedIndex: -1, selectedElement: null },
+  img2img: { selectedIndex: -1, selectedElement: null }
+};
+
+function rsen_saveGalleryState() {
+  ['txt2img', 'img2img'].forEach(function(tabname) {
+    const gallery = document.getElementById(tabname + '_gallery');
+    if (gallery) {
+      const thumbnails = gallery.querySelectorAll('button.thumbnail-item, .thumbnail-item');
+      for (let i = 0; i < thumbnails.length; i++) {
+        if (thumbnails[i].classList.contains('selected')) {
+          rsen_savedGalleryState[tabname].selectedIndex = i;
+          rsen_savedGalleryState[tabname].selectedElement = thumbnails[i];
+          break;
+        }
+      }
+    }
+  });
+}
+
+function rsen_restoreGalleryState() {
+  setTimeout(function() {
+    ['txt2img', 'img2img'].forEach(function(tabname) {
+      const state = rsen_savedGalleryState[tabname];
+      if (state.selectedIndex >= 0) {
+        const gallery = document.getElementById(tabname + '_gallery');
+        if (gallery) {
+          const thumbnails = gallery.querySelectorAll('button.thumbnail-item, .thumbnail-item');
+          if (thumbnails.length > state.selectedIndex) {
+            // Click the thumbnail to re-establish selection
+            thumbnails[state.selectedIndex].click();
+          } else if (thumbnails.length > 0) {
+            // Fallback to first thumbnail
+            thumbnails[0].click();
+          }
+        }
+      }
+      // Reset saved state
+      rsen_savedGalleryState[tabname] = { selectedIndex: -1, selectedElement: null };
+    });
+  }, 100);
+}
+
 function rsen_toggleExtraNetworks() {
-  
+
+  // Save gallery state before any DOM manipulation
+  rsen_saveGalleryState();
+
   // Helper to ensure elements are found and attributes are restored if lost (e.g. due to re-renders)
   const getTabElements = (tabName) => {
       let genTab = document.querySelector(`[sd-enr-id="${tabName}_generation_tab"]`);
@@ -816,6 +865,9 @@ if (generationButton) {
 });
 // Toggle the state
 rsen_toggleState = !rsen_toggleState;
+
+// Restore gallery state after DOM manipulation is complete
+rsen_restoreGalleryState();
 }
 }
 
@@ -849,9 +901,132 @@ onUiLoaded(function() {
     const extraNetworksMovePromptToTabOriginal = extraNetworksMovePromptToTab;
 
     // override the original to not operate when the side panel is open
-    extraNetworksMovePromptToTab = (...args) => { 
+    extraNetworksMovePromptToTab = (...args) => {
       if(rsen_toggleState) return;
       return extraNetworksMovePromptToTabOriginal(...args);
     };
   }
+});
+
+/////////////////////////////
+//12. Gallery Selection Fix for Side Panel
+/////////////////////////////
+
+// Fix for "Bad image index: -1" error when side panel is active
+// The issue is that when DOM elements are moved by the side panel, the selector
+// '[style="display: block;"].tabitem' used by Forge's ui.js fails to find the gallery.
+// This patch overrides the core gallery functions to use a more robust approach.
+
+onUiLoaded(function() {
+  // Wait for Forge's ui.js to load first
+  setTimeout(function() {
+    // Store original functions
+    const originalAllGalleryButtons = typeof all_gallery_buttons !== 'undefined' ? all_gallery_buttons : null;
+    const originalSelectedGalleryButton = typeof selected_gallery_button !== 'undefined' ? selected_gallery_button : null;
+    const originalSelectedGalleryIndex = typeof selected_gallery_index !== 'undefined' ? selected_gallery_index : null;
+
+    // Helper function to get the currently active tab name
+    function rsen_getActiveTabName() {
+      // Check which main tab is visible
+      const txt2imgTab = document.getElementById('tab_txt2img');
+      const img2imgTab = document.getElementById('tab_img2img');
+
+      if (txt2imgTab && txt2imgTab.style.display !== 'none' && !txt2imgTab.classList.contains('hidden')) {
+        return 'txt2img';
+      }
+      if (img2imgTab && img2imgTab.style.display !== 'none' && !img2imgTab.classList.contains('hidden')) {
+        return 'img2img';
+      }
+
+      // Fallback: check for visible tabitem
+      const visibleTab = document.querySelector('[style*="display: block"].tabitem');
+      if (visibleTab) {
+        if (visibleTab.id === 'tab_txt2img' || visibleTab.querySelector('#txt2img_gallery')) {
+          return 'txt2img';
+        }
+        if (visibleTab.id === 'tab_img2img' || visibleTab.querySelector('#img2img_gallery')) {
+          return 'img2img';
+        }
+      }
+
+      return 'txt2img'; // Default fallback
+    }
+
+    // Robust function to get all gallery buttons
+    function rsen_allGalleryButtons() {
+      // If side panel is not active, use original function
+      if (!rsen_toggleState && originalAllGalleryButtons) {
+        const result = originalAllGalleryButtons();
+        if (result && result.length > 0) {
+          return result;
+        }
+      }
+
+      // Side panel is active or original function failed - use direct DOM query
+      const tabname = rsen_getActiveTabName();
+      const galleryId = tabname + '_gallery';
+      const gallery = document.getElementById(galleryId);
+
+      if (!gallery) {
+        return [];
+      }
+
+      // Find all thumbnail buttons in the gallery
+      // Try multiple selectors to handle different Gradio versions
+      const selectors = [
+        '.thumbnails > .thumbnail-item.thumbnail-small',
+        '.thumbnails > .thumbnail-item',
+        '.thumbnail-item.thumbnail-small',
+        '.thumbnail-item',
+        'button.thumbnail-item'
+      ];
+
+      for (const selector of selectors) {
+        const buttons = gallery.querySelectorAll(selector);
+        if (buttons.length > 0) {
+          // Filter to only visible buttons
+          const visibleButtons = Array.from(buttons).filter(btn => btn.offsetParent !== null);
+          if (visibleButtons.length > 0) {
+            return visibleButtons;
+          }
+          return Array.from(buttons);
+        }
+      }
+
+      return [];
+    }
+
+    // Override all_gallery_buttons
+    if (originalAllGalleryButtons) {
+      window.all_gallery_buttons = rsen_allGalleryButtons;
+      // Also set it without window prefix for compatibility
+      all_gallery_buttons = rsen_allGalleryButtons;
+    }
+
+    // Override selected_gallery_button
+    if (originalSelectedGalleryButton) {
+      window.selected_gallery_button = function() {
+        const buttons = rsen_allGalleryButtons();
+        return buttons.find(elem => elem.classList.contains('selected')) ?? null;
+      };
+      selected_gallery_button = window.selected_gallery_button;
+    }
+
+    // Override selected_gallery_index
+    if (originalSelectedGalleryIndex) {
+      window.selected_gallery_index = function() {
+        const buttons = rsen_allGalleryButtons();
+        const index = buttons.findIndex(elem => elem.classList.contains('selected'));
+
+        // If no selection found but there are images, default to 0
+        if (index === -1 && buttons.length > 0) {
+          return 0;
+        }
+
+        return index;
+      };
+      selected_gallery_index = window.selected_gallery_index;
+    }
+
+  }, 500); // Short delay to ensure Forge's ui.js loads first
 });
