@@ -1,36 +1,55 @@
 /*-- make extra network thumbs appear to the side --*/
+/*
+ * When side panel is CLOSED (collapsed), use Forge's default layout.
+ * The grid layout was causing overlap issues with the generation tab.
+ * We only need to ensure any leftover inline styles are reset.
+ */
 
-#tab_txt2img > div,
-#tab_img2img > div {
-	display: grid;
+/* These grid rules are DISABLED to prevent overlap when panel is closed.
+ * Keeping them commented for reference in case side-by-side layout is needed in the future.
+ *
+ * body:not([restore-separate-extra-network]) #tab_txt2img > div,
+ * body:not([restore-separate-extra-network]) #tab_img2img > div {
+ *     display: grid;
+ *     grid-template-columns: min-content min-content auto;
+ * }
+ */
+
+/* Reset any leftover positioning/sizing when side panel is closed */
+body:not([restore-separate-extra-network]) #txt2img_extra_tabs,
+body:not([restore-separate-extra-network]) #img2img_extra_tabs {
+	position: static !important;
+	left: auto !important;
+	right: auto !important;
+	top: auto !important;
+	bottom: auto !important;
+	transform: none !important;
+	width: auto !important;
+	height: auto !important;
+	z-index: auto !important;
 }
 
-#txt2img_toprow,
-#img2img_toprow {
-	grid-column-start: 1;
-	grid-column-end: 4;
-	grid-row-start: 1;
-	grid-row-end: 2;
+/* Ensure generation tab doesn't have leftover side panel styling when closed */
+body:not([restore-separate-extra-network]) [sd-enr-id="txt2img_generation_tab"],
+body:not([restore-separate-extra-network]) [sd-enr-id="img2img_generation_tab"] {
+	position: static !important;
+	width: auto !important;
+	max-width: none !important;
+	flex: unset !important;
+	z-index: auto !important;
 }
 
-#tab_img2img #img2img_toprow ~ .form {
-	display: contents;
+/* Ensure toprow (containing Generate button) is above any overlapping elements when panel is closed */
+body:not([restore-separate-extra-network]) #txt2img_toprow,
+body:not([restore-separate-extra-network]) #img2img_toprow {
+	position: relative !important;
+	z-index: 10 !important;
 }
 
-#tab_txt2img #txt2img_toprow ~ .form,
-#tab_img2img #img2img_extra_networks {
-	grid-column-start: 3;
-	grid-column-end: 4;
-	grid-row-start: 3;
-	grid-row-end: 4;
-}
-
-#tab_txt2img #txt2img_toprow ~ .form + div,
-#tab_img2img #img2img_extra_networks + div {
-	grid-column-start: 1;
-	grid-column-end: 2;
-	grid-row-start: 3;
-	grid-row-end: 4;
+/* Ensure resize bar is hidden when panel is closed */
+body:not([restore-separate-extra-network]) #txt2img_generation_tab_resize,
+body:not([restore-separate-extra-network]) #img2img_generation_tab_resize {
+	display: none !important;
 }
 
 .extra-network-thumbs, .extra-network-cards {
@@ -42,9 +61,10 @@
 	min-height: unset;
 }
 
+/* Media query grid rules disabled - using default Forge layout when panel is closed
 @media (max-width: 970px) {
-	#tab_txt2img #txt2img_toprow ~ .form,
-	#tab_img2img #img2img_extra_networks {
+	body:not([restore-separate-extra-network]) #tab_txt2img #txt2img_toprow ~ .form,
+	body:not([restore-separate-extra-network]) #tab_img2img #img2img_extra_networks {
 		grid-column-start: 1;
 		grid-column-end: 2;
 		grid-row-start: 2;
@@ -53,6 +73,7 @@
 		min-width: unset;
 	}
 }
+*/
 
 /* -- */
 
@@ -120,16 +141,20 @@
 	background-color: var(--primary-600, var(--border-color-accent, rgba(79, 70, 229, 1)));
 }
 
-#tab_txt2img > div,
-#tab_img2img > div {
-	grid-template-columns: min-content min-content auto;
-}
-
-#txt2img_extra_tabs,
-#img2img_extra_tabs {
-	grid-column-start: 1;
-	grid-column-end: 4;
-}
+/* Grid rules for panel-closed state are disabled to prevent overlap issues.
+ * Using Forge's default layout when panel is closed.
+ *
+ * body:not([restore-separate-extra-network]) #tab_txt2img > div,
+ * body:not([restore-separate-extra-network]) #tab_img2img > div {
+ *     grid-template-columns: min-content min-content auto;
+ * }
+ *
+ * body:not([restore-separate-extra-network]) #txt2img_extra_tabs,
+ * body:not([restore-separate-extra-network]) #img2img_extra_tabs {
+ *     grid-column-start: 1;
+ *     grid-column-end: 4;
+ * }
+ */
 
 /* Side panel mode styles */
 [restore-separate-extra-network] [sd-enr-id="txt2img_generation_tab"],
@@ -158,18 +183,11 @@ body[restore-separate-extra-network] .gradio-container {
     max-width: 100%;
 }
 
-/* Fix for the grid layout */
-#tab_txt2img > div.svelte-1uw5tnk,
-#tab_img2img > div.svelte-1uw5tnk {
-    display: grid;
-    grid-template-columns: min-content min-content auto;
-}
-
-/* Ensure proper sizing when panel is closed */
-body:not([restore-separate-extra-network]) #tab_txt2img > div,
-body:not([restore-separate-extra-network]) #tab_img2img > div {
-    display: block;
-}
+/*
+ * When side panel is CLOSED (collapsed), reset to default Forge/Gradio layout.
+ * Do NOT apply grid layout here - let the default layout handle the positioning.
+ * This prevents overlap issues between the extra networks tabs and generation tab.
+ */
 
 /* Card Resizing & Slider Styles */
 .rsen-card-slider-group {
